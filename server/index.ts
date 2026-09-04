@@ -56,17 +56,21 @@ app.post('/v1/renders', auth, (req, res) => {
 });
 
 app.get('/v1/renders/:id', auth, async (req, res) => {
+  const rawId = req.params.id;
+  const jobId = Array.isArray(rawId) ? rawId[0] : rawId;
+  if (!jobId) return res.status(400).json({error: 'Render job ID is required'});
+
   const waitSeconds = Math.max(0, Math.min(25, Number(req.query.wait_seconds || 0)));
   const deadline = Date.now() + waitSeconds * 1000;
 
   while (Date.now() < deadline) {
-    const current = getJob(req.params.id);
+    const current = getJob(jobId);
     if (!current) return res.status(404).json({error: 'Render job not found'});
     if (current.status === 'completed' || current.status === 'failed') return res.json(current);
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
-  const job = getJob(req.params.id);
+  const job = getJob(jobId);
   if (!job) return res.status(404).json({error: 'Render job not found'});
   return res.json(job);
 });
