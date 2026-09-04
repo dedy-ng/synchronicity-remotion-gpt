@@ -13,6 +13,11 @@ const root = path.resolve(__dirname, '..');
 const renderDir = path.join(root, 'renders');
 let bundlePromise: Promise<string> | null = null;
 
+const getRenderConcurrency = () => {
+  const parsed = Number(process.env.RENDER_CONCURRENCY ?? '1');
+  return Number.isFinite(parsed) && parsed >= 1 ? Math.floor(parsed) : 1;
+};
+
 const getBundle = () => {
   if (!bundlePromise) {
     bundlePromise = bundle({
@@ -77,11 +82,14 @@ export const processRender = async ({
       codec: 'h264',
       outputLocation,
       inputProps,
-      crf: 18,
-      x264Preset: 'veryfast',
+      // Conservative server defaults for container hosts such as Railway.
+      // 1080x1920 rendering can otherwise launch multiple Chromium workers and
+      // leave too little memory for the final FFmpeg H.264 encode.
+      crf: 23,
+      x264Preset: 'ultrafast',
       pixelFormat: 'yuv420p',
-      concurrency: process.env.RENDER_CONCURRENCY || '50%',
-      timeoutInMilliseconds: 120_000,
+      concurrency: getRenderConcurrency(),
+      timeoutInMilliseconds: 300_000,
       browserExecutable: process.env.REMOTION_BROWSER_EXECUTABLE || undefined,
       onProgress: ({progress}) => patchJob(jobId, {progress: 0.2 + progress * 0.78}),
     });
