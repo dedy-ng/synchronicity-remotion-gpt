@@ -1,0 +1,109 @@
+openapi: 3.1.0
+info:
+  title: Synchronicity Video Renderer
+  version: 1.0.0
+  description: Creates branded vertical videos from scripts and returns render status.
+servers:
+  - url: https://YOUR-RENDER-SERVICE.example.com
+paths:
+  /v1/renders:
+    post:
+      operationId: createVideo
+      summary: Start rendering a Synchronicity video
+      description: Create a 1080x1920 branded video from an exact source script and optional visual segment plan.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [script]
+              properties:
+                script:
+                  type: string
+                  description: Exact script to speak. Do not rewrite the user's wording.
+                segments:
+                  type: array
+                  description: Consecutive visual chunks covering the script in exact order.
+                  items:
+                    type: object
+                    required: [text]
+                    properties:
+                      text:
+                        type: string
+                      emphasis:
+                        type: array
+                        maxItems: 3
+                        items:
+                          type: string
+                      accent:
+                        type: string
+                        enum: [purple, cyan, green, orange, white]
+                      effect:
+                        type: string
+                        enum: [ring, burst, tunnel, minimal]
+                      intensity:
+                        type: number
+                        minimum: 0.25
+                        maximum: 1
+      responses:
+        '202':
+          description: Render accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                  status:
+                    type: string
+                  status_url:
+                    type: string
+  /v1/renders/{id}:
+    get:
+      operationId: getVideoStatus
+      summary: Check a video render
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: wait_seconds
+          in: query
+          required: false
+          description: Long-poll for up to 25 seconds before returning if the render is still processing.
+          schema:
+            type: integer
+            minimum: 0
+            maximum: 25
+            default: 25
+      responses:
+        '200':
+          description: Render status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  status:
+                    type: string
+                    enum: [queued, voice, rendering, completed, failed]
+                  progress:
+                    type: number
+                  videoUrl:
+                    type: string
+                  error:
+                    type: string
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
