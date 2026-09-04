@@ -24,7 +24,7 @@ const getRenderScale = () => {
   return Math.min(1, Math.max(0.5, parsed));
 };
 
-const MEDIA_CACHE_BYTES = 64 * 1024 * 1024;
+const MEDIA_CACHE_BYTES = 256 * 1024 * 1024;
 const OFFTHREAD_CACHE_BYTES = 32 * 1024 * 1024;
 
 const getBundle = () => {
@@ -104,9 +104,10 @@ export const processRender = async ({
       // Critical for small Railway instances: do not encode frames while
       // Chromium is still rendering them. This trades speed for lower peak RAM.
       disallowParallelEncoding: true,
-      // Remotion otherwise budgets up to half of available system RAM for media
-      // caches. On a 1 GB container that can leave too little headroom for
-      // Chromium + FFmpeg. Keep the caches deliberately small.
+      // @remotion/media requires enough decoded-media cache for the narration.
+      // The previous 64 MiB value was below Remotion's runtime minimum for this
+      // project. 256 MiB clears the reported 240 MiB minimum while still leaving
+      // headroom on a 1 GiB Railway container for Chromium + FFmpeg.
       mediaCacheSizeInBytes: MEDIA_CACHE_BYTES,
       offthreadVideoCacheSizeInBytes: OFFTHREAD_CACHE_BYTES,
       offthreadVideoThreads: 1,
