@@ -17,7 +17,21 @@ const getBundle = () => {
   if (!bundlePromise) {
     bundlePromise = bundle({
       entryPoint: path.join(root, 'src', 'index.ts'),
-      webpackOverride: (config) => config,
+      webpackOverride: (config) => {
+        // The project uses NodeNext-style `.js` import specifiers in TypeScript source
+        // (for example `./Root.js`). During Remotion's Webpack bundle those files
+        // physically exist as `.ts` / `.tsx`, so alias explicit `.js` imports back
+        // to their TypeScript source counterparts.
+        const resolve = (config.resolve ?? {}) as typeof config.resolve & {
+          extensionAlias?: Record<string, string[]>;
+        };
+        resolve.extensionAlias = {
+          ...(resolve.extensionAlias ?? {}),
+          '.js': ['.tsx', '.ts', '.js'],
+        };
+        config.resolve = resolve;
+        return config;
+      },
     });
   }
   return bundlePromise;
